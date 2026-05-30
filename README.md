@@ -1,138 +1,84 @@
-# Автоматическая модерация контента
 
-Проект по разработке инструмента для автоматического анализа текстовых сообщений и выявления потенциально опасного контента.
+# Automatic Detection of Illegal Drug Trade in Chatbot Logs
 
-## 👥 Команда
+A binary text classification project developed for a commercial company to automatically detect illegal drug trade content in chatbot dialogues, without exposing sensitive customer data to external services.
 
-**Кураторы:** Моисеева Валерия ([@valeriiasm](https://t.me/valeriiasm)), Асланов Ильяс ([@ErwynMontgomery](https://t.me/ErwynMontgomery))
+## 👥 Team
 
-**Студенты:**
--   Мамочкина Екатерина ([@EkMa\_ya\_team](https://t.me/EkMa_ya_team))
--   Одношивкина Виктория ([@idont\_vika](https://t.me/idont_vika))
--   Радивилов Артём ([@sew700](https://t.me/sew700))
--   Раецкий Андрей
--   Хахалева Татьяна ([@tatyanaa\_kh](https://t.me/tatyanaa_kh))
+**Khakhaleva Tatyana** — raw dataset processing, dataset description, existing approaches survey, dictionary enlarging, DuckDB pipeline, LLM estimation pipeline, metrics, report preparation
 
-## 🎯 Цели проекта
+**Odnoshivkina Victoria** — raw dataset processing, dictionary creation, metrics
 
-1.  Исследовать различные подходы к обнаружению нелегального контента в текстовых диалогах.
-2.  Разработать и сравнить прототипы моделей модерации.
-3.  Подготовить комплексный отчет с выводами и рекомендациями для внедрения наиболее эффективного решения.
+**Mamochkina Ekaterina** — raw dataset processing, existing approaches survey, in-context learning, metrics
 
-### Ключевые метрики оценки
+## 📌 Problem Statement
 
--   **Accuracy** — общая точность классификации.
--   **Precision** — доля реальных нарушений среди всех "тревог".
--   **Recall** — доля найденных нарушений среди всех существующих.
--   **F1-Score** — балансированная метрика между Precision и Recall.
+Social media and messenger platforms have become venues for illegal businesses, including drug trade operated through chatbots mimicking legitimate companies. This project addresses the absence of an established illegal content detection framework for the Russian language domain. All models are deployed locally on a 32 GB GPU to prevent leakage of sensitive customer data.
 
-## 📁 Структура проекта
+## 📊 Dataset
 
-```
-justai_chatbot/
-├── data/                   # Данные проекта
-│   ├── raw/               # Необработанные данные (словари, датасеты)
-│   └── processed/         # Предобработанные данные
-├── docs/                   # Документация
-│   ├── instructions/      # Инструкции по настройке и работе
-│   └── research/          # Исследовательские материалы и обзоры
-├── src/                    # Исходный код
-│   ├── preprocessing/     # Модули предобработки текста
-│   ├── models/            # Реализация моделей классификации
-│   ├── evaluation/        # Метрики и оценка качества
-│   └── utils/             # Вспомогательные функции
-├── notebooks/              # Jupyter notebooks
-│   └── exploratory/       # Исследовательский анализ данных
-├── experiments/            # Логи экспериментов и результаты
-├── scripts/                # Утилиты и скрипты запуска
-└── tests/                  # Тесты
-```
+- **Source:** commercial chatbot logs (64 raw columns, reduced to 10 after cleaning)
+- **Full dataset:** 7,816,579 messages
+- **Labelled sample:** 1,392 messages across 216 sessions (929 legal / 463 illegal)
+- **Class distribution in full data:** 99.99% legal, 0.01% illegal
+- **Language:** predominantly Russian (detected via fasttext-langdetect)
+- **Split:** session-level 70/15/15 to prevent data leakage
 
-## 🚀 Быстрый старт
+| Split | Sessions | Messages |
+|---|---|---|
+| Train | 150 | 748 |
+| Validation | 33 | 336 |
+| Test | 33 | 305 |
 
-### 1. Клонирование репозитория
+## 🔑 Metrics
 
-```bash
-git clone git@gitlab.scss.eusp.org:pandan/2026/justai_chatbot.git
-cd justai_chatbot
-```
+Recall on the illegal class is prioritized — missing an illegal message is worse than a false alarm. Primary comparison metric is **Macro F1**.
 
-### 2. Установка зависимостей
+## 📈 Results
 
-```bash
-# Создание виртуального окружения
-python -m venv venv
+### Rule-based baseline
 
-# Активация окружения
-source venv/bin/activate  # Для Mac/Linux
-# venv\Scripts\activate   # Для Windows
+| Strategy | Accuracy | Macro F1 |
+|---|---|---|
+| Naive (substring match) | 0.40 | 0.35 |
+| Smart (word boundaries + weight regex) | 0.74 | **0.68** ← baseline |
 
-# Установка зависимостей
-pip install -r requirements.txt
-```
+### Reasoning LLMs on test set (selected results)
 
-### 3. Дополнительные ресурсы
+| Model | Prompt | Macro F1 |
+|---|---|---|
+| Qwen3.5-9B | prompt_c_with_dict | 0.78 |
+| Gemma | prompt_c_with_dict | 0.76 |
+| Mistral | prompt_b_no_dict | 0.76 |
 
-Для работы с русским языком установите модель spaCy:
-```bash
-python -m spacy download ru_core_news_sm
-```
+### Best result — YandexGPT-5-Lite-8B-instruct (prompt_d, after error analysis)
 
-Подробные инструкции по настройке окружения: [docs/instructions/GETTING_STARTED.md](docs/instructions/GETTING_STARTED.md)
+| Metric | Score |
+|---|---|
+| Accuracy | 0.92 |
+| Precision (illegal) | 0.92 |
+| Recall (illegal) | 0.83 |
+| F1 (illegal) | 0.88 |
+| **Macro F1** | **0.91** |
 
-## 📚 Документация
+## 🛠️ Methods
 
-- **[Руководство по началу работы](docs/instructions/GETTING_STARTED.md)** — настройка Git, SSH, окружения
-- **[Как работать с проектом](docs/instructions/WORKING_WITH_PROJECT.md)** — простая инструкция по структуре папок
-- **[Обзор подходов к детекции](docs/research/)** — исследование методов и литературы
+### 1. Rule-based keyword matching
+An 840-term lexicon assembled from four sources: Russian Illegal Drugs Reviews Sentiment Dataset (Kaggle), Russian drug addict slang sites, Wiktionary drug slang appendix, and English DEA seed terms from JEDIS. Two matching strategies were implemented: naive substring search and smart whole-word boundary matching with an auxiliary weight-pattern regex (`\d+(?:\.\d+)?\s*[гг]`).
 
-## 🔄 Процесс работы (Workflow)
+### 2. Instruction-tuned LLMs
+Four locally hosted models were evaluated across three prompt variants (with/without dictionary) under reasoning mode:
+- Qwen3.5-9B
+- Gemma-4-E4B-it
+- YandexGPT-5-Lite-8B-instruct
+- Ministral-3-8B-Instruct-2512
 
-### Работа с задачами
+Key inference parameters: `temperature=0.0`, `max_tokens=20000`, `max_concurrency=32`, `max_retries=5`. Outputs were constrained to a boolean schema `{ has_drug_mention: bool }`.
 
-1.  Все задачи создаются как Issues в репозитории.
-2.  Актуальный статус задач отслеживается на Projects.
-3.  Перед началом работы над задачей назначьте её на себя и переместите в колонку "In Progress".
+## 📚 References
 
-### Работа с Git
-
-```bash
-# Создание новой ветки для задачи
-git checkout -b feature/название-задачи
-
-# Коммит изменений
-git add .
-git commit -m "Описание изменений"
-
-# Отправка в удаленный репозиторий
-git push origin feature/название-задачи
-
-# Создание Pull Request через веб-интерфейс GitLab
-```
-
-## 🛠️ Технологический стек
-
-- **Python 3.10+**
-- **NLP:** spaCy, NLTK, Natasha, pymorphy3
-- **ML/DL:** scikit-learn, PyTorch, Transformers
-- **Визуализация:** matplotlib, seaborn, plotly
-- **Эксперименты:** mlflow, wandb
-- **Тестирование:** pytest
-
-## 📊 Подходы к решению
-
-Проект исследует несколько подходов:
-
-1. **Правила и паттерны** — словари запрещенных слов и регулярные выражения
-2. **NLP-библиотеки** — лемматизация, NER, продвинутые эвристики
-3. **Classical ML** — логистическая регрессия, TF-IDF
-4. **Deep Learning** — BERT, RoBERTa и другие трансформеры
-5. **LLM API** — использование коммерческих моделей (GPT, Claude)
-
-Детальное описание: [docs/research/](docs/research/)
-
-## 📧 Контакты
-
-По всем вопросам обращайтесь к кураторам:
-- Валерия Моисеева: [@valeriiasm](https://t.me/valeriiasm)
-- Ильяс Асланов: [@ErwynMontgomery](https://t.me/ErwynMontgomery)
+1. Cascavilla et al. — Illicit Darkweb Classification via NLP, SECRYPT 2022
+2. Li et al. — Machine Learning for Illicit Drug Dealer Detection on Instagram, JMIR 2019
+3. Prado-Sánchez et al. — Zero-Shot Classification of Illicit Dark Web Content, Electronics 2025
+4. Song et al. — JEDIS: Delexicalized Distant Supervision for Illicit Drug Jargon Detection, KDD 2025
+5. Sonawane et al. — AI Detection of Drug Activity in Telegram, 2025
