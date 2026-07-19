@@ -6,7 +6,7 @@
 
 This project investigates the detection of **drug-related messages** in chatbot conversation logs using both traditional NLP techniques and modern Large Language Models (LLMs).
 
-The project was completed as part of the **Open Data Science (ODS) NLP course** and explores different approaches to binary text classification, including:
+The project explores different approaches to binary text classification, including:
 
 - a rule-based keyword matching baseline;
 - instruction-tuned open-source LLMs;
@@ -34,7 +34,7 @@ Key findings:
 - Prompt engineering significantly improves LLM performance.
 - Instruction-tuned LLMs substantially outperform the rule-based approach.
 - Retrieving semantically similar examples for In-Context Learning increases recall while preserving high precision.
-- The best-performing configuration achieves a **Macro F1 score of 0.91** and a **Recall of 0.94**, making it the most suitable approach for moderation tasks.
+- The ICL configuration achieves **Recall of 0.94**, making it the most suitable approach for moderation tasks.
 
 Complete evaluation details, confusion matrices, prompt templates, and error analysis can be found in **`Project_report.pdf`**.
 
@@ -47,10 +47,10 @@ NLP-ODS-Project
 │
 ├── data/
 │   ├── illegal_terms_dictionary_edit.csv      # Drug-related keyword dictionary
-│   └── train.parquet                          # Labeled dataset
+│   └── train.parquet                          # An example of dataset (The full dataset is under NDA)
 │
 ├── docs/
-│   ├── README.md                              # Additional documentation
+│   ├── README.md                              
 │   └── requirements.txt                       # Python dependencies
 │
 ├── embeddings_out_qwen3_8b/
@@ -82,7 +82,7 @@ NLP-ODS-Project
 
 #### `data/`
 
-Contains the processed dataset used for experiments together with the manually curated dictionary of illegal drug-related terms used by the rule-based baseline.
+Contains the example of the dataset used for experiments together with the manually curated dictionary of illegal drug-related terms used by the rule-based baseline.
 
 #### `src/dataset processing/`
 
@@ -119,19 +119,6 @@ Precomputed embeddings generated with **Qwen3-8B** that are used for semantic re
 
 ---
 
-## Technologies
-
-- Python
-- pandas
-- NumPy
-- scikit-learn
-- Hugging Face Transformers
-- Sentence Transformers
-- Qwen3-8B Embeddings
-- YandexGPT
-- Jupyter Notebook
-
----
 
 ## Installation
 
@@ -147,36 +134,3 @@ Install dependencies:
 ```bash
 pip install -r docs/requirements.txt
 ```
-
----
-
-## Reproducing the Experiments
-
-The experiments can be reproduced in the following order:
-
-1. Prepare the labeled dataset (`src/dataset processing/`).
-2. Run the rule-based baseline.
-3. Evaluate the LLM-based approaches.
-4. Run the In-Context Learning experiments using the provided embeddings.
-5. Compare the results reported in `Project_report.pdf`.
-
----
-
-## Project Report
-
-The complete description of the project, including motivation, dataset construction, methodology, experiments, prompt design, evaluation metrics, error analysis, and discussion, is available in **`Project_report.pdf`**.
-
-```
-
-### A few suggestions
-
-I would also make a couple of small improvements to the repository itself:
-
-- Rename **`Project_peport.pdf`** → **`Project_report.pdf`** (there's a typo).
-- Rename **`dataset processing`** → **`dataset_processing`**.
-- Rename **`rule-based method`** → **`rule_based_method`**.
-- Rename **`22_05_26_multi-model testing_fixed_.py`** to something cleaner like `multi_model_evaluation.py`.
-- Remove the `__MACOSX` directory—it is an artifact created by macOS and should not be in the repository.
-- Consider moving `requirements.txt` to the repository root instead of `docs/`, which is the more common GitHub convention.
-
-These changes would make the repository look more polished and consistent with typical open-source NLP research projects.
