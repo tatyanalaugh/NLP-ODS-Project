@@ -1,84 +1,182 @@
+# NLP-ODS-Project
 
-# Automatic Detection of Illegal Drug Trade in Chatbot Logs
+> **📄 Start here:** The complete project description, methodology, experimental setup, and discussion of results are available in **`Project_report.pdf`**. This report serves as the primary documentation for the project, while this README provides an overview of the repository and its contents.
 
-A binary text classification project developed for a commercial company to automatically detect illegal drug trade content in chatbot dialogues, without exposing sensitive customer data to external services.
+## Project Overview
 
-## 👥 Team
+This project investigates the detection of **drug-related messages** in chatbot conversation logs using both traditional NLP techniques and modern Large Language Models (LLMs).
 
-**Khakhaleva Tatyana** — raw dataset processing, dataset description, existing approaches survey, dictionary enlarging, DuckDB pipeline, LLM estimation pipeline, metrics, report preparation
+The project was completed as part of the **Open Data Science (ODS) NLP course** and explores different approaches to binary text classification, including:
 
-**Odnoshivkina Victoria** — raw dataset processing, dictionary creation, metrics
+- a rule-based keyword matching baseline;
+- instruction-tuned open-source LLMs;
+- prompt engineering;
+- In-Context Learning (ICL);
+- semantic retrieval of demonstration examples using embedding models.
 
-**Mamochkina Ekaterina** — raw dataset processing, existing approaches survey, in-context learning, metrics
+The objective is to maximize **recall** while maintaining high overall classification quality, making the solution suitable for content moderation scenarios where missing illegal messages is particularly costly.
 
-## 📌 Problem Statement
+---
 
-Social media and messenger platforms have become venues for illegal businesses, including drug trade operated through chatbots mimicking legitimate companies. This project addresses the absence of an established illegal content detection framework for the Russian language domain. All models are deployed locally on a 32 GB GPU to prevent leakage of sensitive customer data.
+## Main Results
 
-## 📊 Dataset
+The project compares several approaches to drug-related message detection.
 
-- **Source:** commercial chatbot logs (64 raw columns, reduced to 10 after cleaning)
-- **Full dataset:** 7,816,579 messages
-- **Labelled sample:** 1,392 messages across 216 sessions (929 legal / 463 illegal)
-- **Class distribution in full data:** 99.99% legal, 0.01% illegal
-- **Language:** predominantly Russian (detected via fasttext-langdetect)
-- **Split:** session-level 70/15/15 to prevent data leakage
+| Method | Macro F1 | Recall |
+|---------|----------|---------|
+| Rule-based keyword matching | **0.68** | 0.79 |
+| YandexGPT-5-Lite-8B (best prompt) | **0.91** | 0.90 |
+| ICL + semantic example retrieval (MMR) | **0.91** | **0.94** |
 
-| Split | Sessions | Messages |
-|---|---|---|
-| Train | 150 | 748 |
-| Validation | 33 | 336 |
-| Test | 33 | 305 |
+Key findings:
 
-## 🔑 Metrics
+- Simple keyword matching provides a strong baseline but suffers from limited generalization.
+- Prompt engineering significantly improves LLM performance.
+- Instruction-tuned LLMs substantially outperform the rule-based approach.
+- Retrieving semantically similar examples for In-Context Learning increases recall while preserving high precision.
+- The best-performing configuration achieves a **Macro F1 score of 0.91** and a **Recall of 0.94**, making it the most suitable approach for moderation tasks.
 
-Recall on the illegal class is prioritized — missing an illegal message is worse than a false alarm. Primary comparison metric is **Macro F1**.
+Complete evaluation details, confusion matrices, prompt templates, and error analysis can be found in **`Project_report.pdf`**.
 
-## 📈 Results
+---
 
-### Rule-based baseline
+## Repository Structure
 
-| Strategy | Accuracy | Macro F1 |
-|---|---|---|
-| Naive (substring match) | 0.40 | 0.35 |
-| Smart (word boundaries + weight regex) | 0.74 | **0.68** ← baseline |
+```
+NLP-ODS-Project
+│
+├── data/
+│   ├── illegal_terms_dictionary_edit.csv      # Drug-related keyword dictionary
+│   └── train.parquet                          # Labeled dataset
+│
+├── docs/
+│   ├── README.md                              # Additional documentation
+│   └── requirements.txt                       # Python dependencies
+│
+├── embeddings_out_qwen3_8b/
+│   └── embeddings_out_qwen3_8b/
+│       ├── train_embeddings.npy
+│       ├── val_embeddings.npy
+│       ├── test_embeddings.npy
+│       ├── *_labels.npy
+│       └── *_ids.npy
+│
+├── src/
+│   ├── dataset processing/
+│   │   ├── 2026-04-05_create_labeled_dataset.ipynb
+│   │   └── 2026-04-14_split_labeled_dataset.ipynb
+│   │
+│   ├── rule-based method/
+│   │   ├── 2026-04-14_keyword_baseline.ipynb
+│   │   └── extending_vocabulary.py
+│   │
+│   └── LLMs/
+│       ├── 2026-05-26_model_api_refactored.ipynb
+│       ├── 22_05_26_multi-model testing_fixed_.py
+│       └── ICL/
+│
+└── Project_report.pdf                         # Full project report
+```
 
-### Reasoning LLMs on test set (selected results)
+### Repository Contents
 
-| Model | Prompt | Macro F1 |
-|---|---|---|
-| Qwen3.5-9B | prompt_c_with_dict | 0.78 |
-| Gemma | prompt_c_with_dict | 0.76 |
-| Mistral | prompt_b_no_dict | 0.76 |
+#### `data/`
 
-### Best result — YandexGPT-5-Lite-8B-instruct (prompt_d, after error analysis)
+Contains the processed dataset used for experiments together with the manually curated dictionary of illegal drug-related terms used by the rule-based baseline.
 
-| Metric | Score |
-|---|---|
-| Accuracy | 0.92 |
-| Precision (illegal) | 0.92 |
-| Recall (illegal) | 0.83 |
-| F1 (illegal) | 0.88 |
-| **Macro F1** | **0.91** |
+#### `src/dataset processing/`
 
-## 🛠️ Methods
+Notebooks for dataset preparation:
 
-### 1. Rule-based keyword matching
-An 840-term lexicon assembled from four sources: Russian Illegal Drugs Reviews Sentiment Dataset (Kaggle), Russian drug addict slang sites, Wiktionary drug slang appendix, and English DEA seed terms from JEDIS. Two matching strategies were implemented: naive substring search and smart whole-word boundary matching with an auxiliary weight-pattern regex (`\d+(?:\.\d+)?\s*[гг]`).
+- creating the labeled dataset;
+- train/validation/test splitting.
 
-### 2. Instruction-tuned LLMs
-Four locally hosted models were evaluated across three prompt variants (with/without dictionary) under reasoning mode:
-- Qwen3.5-9B
-- Gemma-4-E4B-it
-- YandexGPT-5-Lite-8B-instruct
-- Ministral-3-8B-Instruct-2512
+#### `src/rule-based method/`
 
-Key inference parameters: `temperature=0.0`, `max_tokens=20000`, `max_concurrency=32`, `max_retries=5`. Outputs were constrained to a boolean schema `{ has_drug_mention: bool }`.
+Implementation of the keyword-based baseline, including dictionary expansion and evaluation.
 
-## 📚 References
+#### `src/LLMs/`
 
-1. Cascavilla et al. — Illicit Darkweb Classification via NLP, SECRYPT 2022
-2. Li et al. — Machine Learning for Illicit Drug Dealer Detection on Instagram, JMIR 2019
-3. Prado-Sánchez et al. — Zero-Shot Classification of Illicit Dark Web Content, Electronics 2025
-4. Song et al. — JEDIS: Delexicalized Distant Supervision for Illicit Drug Jargon Detection, KDD 2025
-5. Sonawane et al. — AI Detection of Drug Activity in Telegram, 2025
+Experiments with instruction-tuned LLMs, prompt engineering, API-based inference, and model evaluation.
+
+The `ICL` directory contains experiments on **In-Context Learning**, including semantic retrieval of demonstrations using sentence embeddings.
+
+#### `embeddings_out_qwen3_8b/`
+
+Precomputed embeddings generated with **Qwen3-8B** that are used for semantic retrieval during ICL experiments.
+
+---
+
+## Project Workflow
+
+1. Build a labeled dataset from raw chatbot conversations.
+2. Split the dataset into train, validation, and test subsets.
+3. Train and evaluate a rule-based keyword detector.
+4. Evaluate multiple instruction-tuned LLMs using different prompts.
+5. Improve performance with In-Context Learning.
+6. Retrieve semantically similar examples using embedding-based search.
+7. Compare all approaches using standard classification metrics.
+
+---
+
+## Technologies
+
+- Python
+- pandas
+- NumPy
+- scikit-learn
+- Hugging Face Transformers
+- Sentence Transformers
+- Qwen3-8B Embeddings
+- YandexGPT
+- Jupyter Notebook
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/tatyanalaugh/NLP-ODS-Project.git
+cd NLP-ODS-Project
+```
+
+Install dependencies:
+
+```bash
+pip install -r docs/requirements.txt
+```
+
+---
+
+## Reproducing the Experiments
+
+The experiments can be reproduced in the following order:
+
+1. Prepare the labeled dataset (`src/dataset processing/`).
+2. Run the rule-based baseline.
+3. Evaluate the LLM-based approaches.
+4. Run the In-Context Learning experiments using the provided embeddings.
+5. Compare the results reported in `Project_report.pdf`.
+
+---
+
+## Project Report
+
+The complete description of the project, including motivation, dataset construction, methodology, experiments, prompt design, evaluation metrics, error analysis, and discussion, is available in **`Project_report.pdf`**.
+
+```
+
+### A few suggestions
+
+I would also make a couple of small improvements to the repository itself:
+
+- Rename **`Project_peport.pdf`** → **`Project_report.pdf`** (there's a typo).
+- Rename **`dataset processing`** → **`dataset_processing`**.
+- Rename **`rule-based method`** → **`rule_based_method`**.
+- Rename **`22_05_26_multi-model testing_fixed_.py`** to something cleaner like `multi_model_evaluation.py`.
+- Remove the `__MACOSX` directory—it is an artifact created by macOS and should not be in the repository.
+- Consider moving `requirements.txt` to the repository root instead of `docs/`, which is the more common GitHub convention.
+
+These changes would make the repository look more polished and consistent with typical open-source NLP research projects.
